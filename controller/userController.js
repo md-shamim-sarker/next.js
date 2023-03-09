@@ -21,7 +21,7 @@ export const postUser = async (req, res) => {
             .then(data => {
                 return res.json({status: "user created", data});
             })
-            .catch(() => res.json({error: "Error in create method!"}));
+            .catch((error) => res.json({message: "This user already exits!"}));
     } catch(error) {
         return res.json({error: "Error in posting data!"});
     }
