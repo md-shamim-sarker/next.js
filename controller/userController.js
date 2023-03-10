@@ -31,8 +31,9 @@ export const postUser = async (req, res) => {
 export const patchUser = async (req, res) => {
     try {
         const {_id} = req.query;
-        const formData = req.body;
-        const user = await Users.findByIdAndUpdate(_id, formData);
+        const {username, email, password} = req.body;
+        const updatedUser = {username, email, password: await hash(password, 10).catch(() => res.json({error: "Error in hash!"}))};
+        const user = await Users.findByIdAndUpdate(_id, updatedUser);
         return res.json({status: "updated", user});
     } catch(error) {
         return res.json({error: "Error in updating data!"});
