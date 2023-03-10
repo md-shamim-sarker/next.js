@@ -1,7 +1,8 @@
 # Next.js Note
 
 ## Create Next.js API
-### Install Mongoose and BCrypt
+
+### Install Dependency
 ```code
 npm install mongoose bcrypt
 ```
