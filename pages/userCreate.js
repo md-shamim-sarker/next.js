@@ -1,18 +1,10 @@
 import axios from "axios";
 import {useRouter} from "next/router";
-import {useMutation} from "react-query";
 
 const UserCreate = () => {
     const router = useRouter();
 
     // Create user
-    const mutation = useMutation((user) => axios.post("/api/auth/users", user),
-        {
-            onSuccess: () => {
-                router.push("/");
-            }
-        }
-    );
 
     function onSubmitHandler(event) {
         event.preventDefault();
@@ -24,7 +16,11 @@ const UserCreate = () => {
 
         const user = {username, email, password};
 
-        mutation.mutate(user);
+        axios.post("/api/auth/users", user)
+            .then(() => {
+                router.push("/");
+            })
+            .catch(err => console.log(err));
     }
 
     return (

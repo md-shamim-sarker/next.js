@@ -1,19 +1,11 @@
 import axios from "axios";
 import {useRouter} from "next/router";
-import {useMutation} from "react-query";
 
 const UserUpdate = () => {
     const router = useRouter();
 
     // Update user
-    const mutation = useMutation((user) => axios.patch(`/api/auth/users?_id=${router.query._id}`, user),
-        {
-            onSuccess: () => {
-                router.push("/");
-            }
-        });
-
-    const {username, email} = router.query;
+    const {_id, username, email} = router.query;
 
     function onSubmitHandler(event) {
         event.preventDefault();
@@ -25,7 +17,11 @@ const UserUpdate = () => {
 
         const user = {username, email, password};
 
-        mutation.mutate(user);
+        axios.patch(`/api/auth/users?_id=${_id}`, user)
+            .then(() => {
+                router.push("/");
+            })
+            .catch(err => console.log(err));
     }
 
     return (

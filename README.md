@@ -1,58 +1,164 @@
 # Next.js Note
 
 ## Next.js CRUD Operation
-### Install Axios and React-Query
+
+### Install Dependency
 ```code
-npm install axios react-query
+npm install axios mongoose bcrypt
 ```
 
-### Wrap with react-query (pages/_app.js)
+## Backend Section
+
+### database/conn.js
 ```js
-import '@/styles/globals.css';
-import {QueryClient, QueryClientProvider} from 'react-query';
+import mongoose from "mongoose";
 
-export const queryClient = new QueryClient();
+mongoose.set('strictQuery', true);
 
-export default function App({Component, pageProps}) {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <Component {...pageProps} />
-    </QueryClientProvider>
-  );
-}
+const MONGO_URI = "mongodb://127.0.0.1:27017/nextapp";
+
+const connectMongo = async () => {
+    try {
+        const {connection} = await mongoose.connect(MONGO_URI);
+        if(connection.readyState === 1) {
+            console.log('Database Connected!');
+        } else {
+            console.log('Database Not Connected!');
+        }
+    } catch(error) {
+        console.log(error.message);
+    }
+};
+
+export default connectMongo;
 ```
+### model/userSchema.js
+```js
+import {model, models, Schema} from "mongoose";
+
+const userSchema = new Schema(
+    {
+        username: {type: String, unique: true},
+        email: {type: String, unique: true},
+        password: String
+    }
+);
+
+const Users = models.user || model('user', userSchema);
+
+export default Users;
+```
+### controller/userController.js
+```js
+import Users from "@/model/userSchema";
+import {hash} from "bcrypt";
+
+// http://localhost:3000/api/auth/users
+export const getUsers = async (req, res) => {
+    try {
+        const users = await Users.find();
+        return res.json(users);
+    } catch(error) {
+        return res.json({error});
+    }
+};
+
+// http://localhost:3000/api/auth/users
+export const postUser = async (req, res) => {
+    try {
+        const {username, email, password} = req.body;
+        const user = {username, email, password: await hash(password, 10).catch(() => res.json({error: "Error in hash!"}))};
+
+        Users.create(user)
+            .then(data => {
+                return res.json({status: "user created", data});
+            })
+            .catch((error) => res.json({message: "This user already exits!"}));
+    } catch(error) {
+        return res.json({error: "Error in posting data!"});
+    }
+};
+
+// http://localhost:3000/api/auth/users?_id=...
+export const patchUser = async (req, res) => {
+    try {
+        const {_id} = req.query;
+        const {username, email, password} = req.body;
+        const updatedUser = {username, email, password: await hash(password, 10).catch(() => res.json({error: "Error in hash!"}))};
+        const user = await Users.findByIdAndUpdate(_id, updatedUser);
+        return res.json({status: "updated", user});
+    } catch(error) {
+        return res.json({error: "Error in updating data!"});
+    }
+};
+
+// http://localhost:3000/api/auth/users?_id=...
+export const deleteUser = async (req, res) => {
+    try {
+        const {_id} = req.query;
+        const user = await Users.findByIdAndDelete(_id);
+        return res.json({status: "deleted", user});
+    } catch(error) {
+        return res.json({error: "Error in deleting data!"});
+    }
+};
+```
+### pages/api/auth/users.js
+```js
+import {deleteUser, getUsers, patchUser, postUser} from "@/controller/userController";
+import {default as connectMongo} from "@/database/conn";
+
+const handler = async (req, res) => {
+    await connectMongo()
+        .catch(() => {
+            res.json({error: "Connection Failed!"});
+        });
+
+    switch(req.method) {
+        case "GET":
+            getUsers(req, res);
+            break;
+        case "POST":
+            postUser(req, res);
+            break;
+        case "PATCH":
+            patchUser(req, res);
+            break;
+        case "DELETE":
+            deleteUser(req, res);
+            break;
+        default:
+            res.json({message: `${req.method} not allowed!`});
+            break;
+    }
+};
+
+export default handler;
+```
+
+## Frontend Section
 
 ### components/users/users.js
 ```js
 import axios from "axios";
 import Link from "next/link";
 import {useRouter} from "next/router";
-import {useQuery} from "react-query";
+import {useEffect, useState} from "react";
 import User from "./user";
 
 const Users = () => {
     const router = useRouter();
+    const [users, setUsers] = useState([]);
 
-    // Data fetching
-    const {isLoading, isError, data, refetch} = useQuery(
-        'users',
-        () => axios.get("/api/auth/users"),
-    );
-
-    if(isLoading) {
-        return <h1>Loading...</h1>;
-    }
-
-    if(isError) {
-        return <h1>Unable to fetch data...</h1>;
-    }
-
-    const users = data.data;
+    useEffect(() => {
+        axios.get("/api/auth/users")
+            .then(data => setUsers(data.data))
+            .catch(err => console.log(err));
+    }, [users]);
 
     // Data delete
     const onDelete = async (_id) => {
-        axios.delete(`/api/auth/users?_id=${_id}`);
-        await refetch();
+        await axios.delete(`/api/auth/users?_id=${_id}`);
     };
 
     return (
@@ -86,11 +192,8 @@ const Users = () => {
 
 export default Users;
 ```
-
-### components/users/user
+### components/users/user.js
 ```js
-import axios from "axios";
-
 const User = ({index, user, router, onDelete}) => {
     const {_id, username, email} = user;
     return (
@@ -115,7 +218,6 @@ const User = ({index, user, router, onDelete}) => {
 
 export default User;
 ```
-
 ### pages/index.js
 ```js
 import Users from "@/components/users/users";
@@ -130,24 +232,15 @@ const Home = () => {
 
 export default Home;
 ```
-
 ### pages/userCreate.js
 ```js
 import axios from "axios";
 import {useRouter} from "next/router";
-import {useMutation} from "react-query";
 
 const UserCreate = () => {
     const router = useRouter();
 
     // Create user
-    const mutation = useMutation((user) => axios.post("/api/auth/users", user),
-        {
-            onSuccess: () => {
-                router.push("/");
-            }
-        }
-    );
 
     function onSubmitHandler(event) {
         event.preventDefault();
@@ -159,7 +252,11 @@ const UserCreate = () => {
 
         const user = {username, email, password};
 
-        mutation.mutate(user);
+        axios.post("/api/auth/users", user)
+            .then(() => {
+                router.push("/");
+            })
+            .catch(err => console.log(err));
     }
 
     return (
@@ -177,25 +274,16 @@ const UserCreate = () => {
 
 export default UserCreate;
 ```
-
 ### pages/userUpdate.js
 ```js
 import axios from "axios";
 import {useRouter} from "next/router";
-import {useMutation} from "react-query";
 
 const UserUpdate = () => {
     const router = useRouter();
 
     // Update user
-    const mutation = useMutation((user) => axios.patch(`/api/auth/users?_id=${router.query._id}`, user),
-        {
-            onSuccess: () => {
-                router.push("/");
-            }
-        });
-
-    const {username, email} = router.query;
+    const {_id, username, email} = router.query;
 
     function onSubmitHandler(event) {
         event.preventDefault();
@@ -207,7 +295,11 @@ const UserUpdate = () => {
 
         const user = {username, email, password};
 
-        mutation.mutate(user);
+        axios.patch(`/api/auth/users?_id=${_id}`, user)
+            .then(() => {
+                router.push("/");
+            })
+            .catch(err => console.log(err));
     }
 
     return (

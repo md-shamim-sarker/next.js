@@ -1,5 +1,3 @@
-import axios from "axios";
-
 const User = ({index, user, router, onDelete}) => {
     const {_id, username, email} = user;
     return (

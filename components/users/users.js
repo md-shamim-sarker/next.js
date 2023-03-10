@@ -1,32 +1,22 @@
 import axios from "axios";
 import Link from "next/link";
 import {useRouter} from "next/router";
-import {useQuery} from "react-query";
+import {useEffect, useState} from "react";
 import User from "./user";
 
 const Users = () => {
     const router = useRouter();
+    const [users, setUsers] = useState([]);
 
-    // Data fetching
-    const {isLoading, isError, data, refetch} = useQuery(
-        'users',
-        () => axios.get("/api/auth/users"),
-    );
-
-    if(isLoading) {
-        return <h1>Loading...</h1>;
-    }
-
-    if(isError) {
-        return <h1>Unable to fetch data...</h1>;
-    }
-
-    const users = data.data;
+    useEffect(() => {
+        axios.get("/api/auth/users")
+            .then(data => setUsers(data.data))
+            .catch(err => console.log(err));
+    }, [users]);
 
     // Data delete
     const onDelete = async (_id) => {
-        axios.delete(`/api/auth/users?_id=${_id}`);
-        await refetch();
+        await axios.delete(`/api/auth/users?_id=${_id}`);
     };
 
     return (
