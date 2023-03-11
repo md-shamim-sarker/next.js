@@ -13,7 +13,7 @@ const Dashboard = () => {
 
 export default Dashboard;
 
-export async function getServerSideProps({req}) {
+/* export async function getServerSideProps({req}) {
     const session = await getSession({req});
 
     if(!session) {
@@ -28,4 +28,4 @@ export async function getServerSideProps({req}) {
     return {
         props: {session}
     };
-}
+} */

@@ -225,25 +225,6 @@ const Dashboard = () => {
         </div>
     );
 };
-
-export default Dashboard;
-
-export async function getServerSideProps({req}) {
-    const session = await getSession({req});
-
-    if(!session) {
-        return {
-            redirect: {
-                destination: '/login',
-                permanent: false
-            }
-        };
-    }
-
-    return {
-        props: {session}
-    };
-}
 ```
 ### pages/login.js
 ```js
@@ -320,6 +301,26 @@ const Register = () => {
 };
 
 export default Register;
+```
+### (Create Protected Route) middleware.js
+```js
+import {NextResponse} from "next/server";
+
+const middleware = (req) => {
+    const baseUrl = "http://localhost:3000/";
+    let verify = req.cookies.get('next-auth.session-token');
+    let url = req.url;
+
+    if(!verify && url.includes("/dashboard")) {
+        return NextResponse.redirect(`${baseUrl}login`);
+    }
+
+    if(verify && url.includes("/login")) {
+        return NextResponse.redirect(`${baseUrl}`);
+    }
+};
+
+export default middleware;
 ```
 ### styles/globals.css
 ```css
