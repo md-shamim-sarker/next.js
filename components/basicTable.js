@@ -1,75 +1,98 @@
-import React, {useMemo} from 'react';
-import {useTable} from 'react-table';
-import {COLUMNS} from './columns';
-import MOCK_DATA from "./MOCK_DATA.json";
+import {useMemo} from "react";
+import {useGlobalFilter, usePagination, useTable} from "react-table";
+import DATA from "./DATA.json";
+import Table from "./table";
+
+const COLUMNS = [
+    {accessor: "id"},
+    {accessor: "first_name"},
+    {accessor: "last_name"},
+    {accessor: "email"},
+    {accessor: "gender"},
+    {accessor: "country"}
+];
 
 const BasicTable = () => {
     const columns = useMemo(() => COLUMNS, []);
-    const data = useMemo(() => MOCK_DATA, []);
+    const data = useMemo(() => DATA, []);
 
-    const tableInstance = useTable({columns, data});
+    const {
+        page,
+        nextPage,
+        previousPage,
+        canNextPage,
+        canPreviousPage,
+        pageOptions,
+        setPageSize,
+        state,
+        setGlobalFilter
+    } = useTable(
+        {columns, data},
+        useGlobalFilter,
+        usePagination);
 
-    const {getTableProps, headerGroups, getTableBodyProps, rows, prepareRow, footerGroups} = tableInstance;
+    const {globalFilter, pageIndex, pageSize} = state;
 
     return (
-        <table {...getTableProps}>
-            <thead>
-                {
-                    headerGroups.map((headerGroup, i) => <tr
-                        key={i}
-                        {...headerGroup.getHeaderGroupProps()}>
-                        {
-                            headerGroup.headers.map((column, i) => <th
-                                key={i}
-                                {...column.getHeaderProps()}>
-                                {column.render('Header')}</th>)
-                        }
+        <>
+            {/* Global Filter Option */}
+            Search: {' '}
+            <input
+                type="search"
+                value={globalFilter || ''}
+                onChange={e => setGlobalFilter(e.target.value)}
+            />
+
+            {/* Table */}
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>First Name</th>
+                        <th>Last Name</th>
+                        <th>Email</th>
+                        <th>Gender</th>
+                        <th>Country</th>
                         <th>Edit</th>
                         <th>Delete</th>
-                    </tr>)
-                }
-            </thead>
-            <tbody {...getTableBodyProps}>
-                {
-                    rows.map((row, i) => {
-                        prepareRow(row);
-                        return (
-                            <tr key={i} {...row.getRowProps()}>
-                                {
-                                    row.cells.map((cell, i) => <td
-                                        key={i}
-                                        {...cell.getCellProps()}
-                                    >{cell.render('Cell')}</td>)
-                                }
-                                <td>
-                                    <button>Edit</button>
-                                </td>
-                                <td>
-                                    <button>Delete</button>
-                                </td>
-                            </tr>
-                        );
-                    })
-                }
-            </tbody>
-            <tfoot>
-                {
-                    footerGroups.map((footerGroup, i) => <tr
-                        key={i}
-                        {...footerGroup.getFooterGroupProps()}>
-                        {
-                            footerGroup.headers.map((column, i) => <th
-                                key={i}
-                                {...column.getFooterProps}>
-                                {column.render('Footer')}
-                            </th>)
-                        }
-                        <th>Edit</th>
-                        <th>Delete</th>
-                    </tr>)
-                }
-            </tfoot>
-        </table>
+                    </tr>
+                </thead>
+                <tbody>
+                    {
+                        page.map(row => <Table
+                            key={row.values.id}
+                            row={row.values}
+                        ></Table>)
+                    }
+                </tbody>
+            </table>
+
+            {/* Pagination */}
+            <div>
+                <button onClick={() => previousPage()} disabled={!canPreviousPage}>Previous</button>
+
+                <span>
+                    Page{' '}
+                    <strong>
+                        {pageIndex + 1} of {pageOptions.length}
+                    </strong>
+                    {' '}
+                </span>
+
+                <select
+                    value={pageSize}
+                    onChange={e => setPageSize(Number(e.target.value))}
+                >
+                    <option value="10">Show 10</option>
+                    <option value="20">Show 20</option>
+                    <option value="30">Show 30</option>
+                    <option value="40">Show 40</option>
+                    <option value="50">Show 50</option>
+                </select>
+
+                <button onClick={() => nextPage()} disabled={!canNextPage}>Next</button>
+            </div>
+        </>
     );
 };
 
