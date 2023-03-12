@@ -1,21 +1,100 @@
 # Next.js Note
 
-## Create a brand new Next.js Project
+## Create React Table
+
+### Install Dependency
 ```code
-npx create-next-app@latest
-# or
-yarn create next-app
-# or
-pnpm create next-app
+npm install react-table axios
 ```
-## After the installation is complete:
-```code
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
+### components/columns.js
+```js
+export const COLUMNS = [
+    {
+        Header: "Id",
+        accessor: 'id'
+    },
+    {
+        Header: "First Name",
+        accessor: 'first_name'
+    },
+    {
+        Header: "Last Name",
+        accessor: 'last_name'
+    },
+    {
+        Header: "Date of Birth",
+        accessor: 'dob'
+    },
+    {
+        Header: "Country",
+        accessor: 'country'
+    },
+    {
+        Header: "Phone",
+        accessor: 'phone'
+    }
+];
 ```
-Run npm run dev or yarn dev or pnpm dev to start the development server on http://localhost:3000
-Visit http://localhost:3000 to view your application
-Edit pages/index.js and see the updated result in your browser
+
+### components/basicTable.js
+```js
+import React, {useMemo} from 'react';
+import {useTable} from 'react-table';
+import {COLUMNS} from './columns';
+import MOCK_DATA from "./MOCK_DATA.json";
+
+const BasicTable = () => {
+    const columns = useMemo(() => COLUMNS, []);
+    const data = useMemo(() => MOCK_DATA, []);
+
+    const tableInstance = useTable({columns, data});
+
+    const {getTableProps, headerGroups, getTableBodyProps, rows, prepareRow, footerGroups} = tableInstance;
+
+    return (
+        <table {...getTableProps}>
+            <thead>
+                {
+                    headerGroups.map((headerGroup, i) => <tr
+                        key={i}
+                        {...headerGroup.getHeaderGroupProps()}>
+                        {
+                            headerGroup.headers.map((column, i) => <th
+                                key={i}
+                                {...column.getHeaderProps()}>
+                                {column.render('Header')}</th>)
+                        }
+                        <th>Edit</th>
+                        <th>Delete</th>
+                    </tr>)
+                }
+            </thead>
+            <tbody {...getTableBodyProps}>
+                {
+                    rows.map((row, i) => {
+                        prepareRow(row);
+                        return (
+                            <tr key={i} {...row.getRowProps()}>
+                                {
+                                    row.cells.map((cell, i) => <td
+                                        key={i}
+                                        {...cell.getCellProps()}
+                                    >{cell.render('Cell')}</td>)
+                                }
+                                <td>
+                                    <button>Edit</button>
+                                </td>
+                                <td>
+                                    <button>Delete</button>
+                                </td>
+                            </tr>
+                        );
+                    })
+                }
+            </tbody>
+        </table>
+    );
+};
+
+export default BasicTable;
+```
