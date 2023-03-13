@@ -1,4 +1,5 @@
 import Navbar from '@/components/navbar';
+import UserContext from '@/context/userContext';
 import '@/styles/globals.css';
 import {SessionProvider} from "next-auth/react";
 
@@ -7,8 +8,10 @@ export default function App({
 }) {
   return (
     <SessionProvider session={session}>
-      <Navbar></Navbar>
-      <Component {...pageProps} />
+      <UserContext>
+        <Navbar></Navbar>
+        <Component {...pageProps} />
+      </UserContext>
     </SessionProvider>
   );
 }
